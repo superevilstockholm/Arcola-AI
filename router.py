@@ -4,6 +4,9 @@ from fastapi.responses import JSONResponse
 
 from aiomysql import Pool
 
+# Models
+from models.AuthModels import RegisterModel
+
 # Controllers
 from controllers.AuthController import AuthController
 
@@ -23,3 +26,8 @@ class Router:
         async def isLoggedIn(request: Request) -> JSONResponse:
             """Checking if the user is logged in"""
             return await AuthController().isLoggedIn(request.cookies.get("session_token"), self.db_pool)
+        
+        @self.app.post("/api/register", response_class=JSONResponse, include_in_schema=True)
+        async def register(request: Request, userData: RegisterModel) -> JSONResponse:
+            """Registering a new user"""
+            return await AuthController().Register(userData.model_dump(), self.db_pool)
