@@ -36,3 +36,8 @@ class Router:
         async def login(request: Request, userData: LoginModel) -> JSONResponse:
             """Logging in a user"""
             return await AuthController().Login(userData.model_dump(), self.db_pool)
+        
+        @self.app.delete("/api/logout", response_class=JSONResponse, include_in_schema=True)
+        async def logout(request: Request) -> JSONResponse:
+            """Logging out a user"""
+            return await AuthController().Logout(token=request.cookies.get("session_token"), db_pool=self.db_pool)

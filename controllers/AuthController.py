@@ -68,9 +68,31 @@ class AuthController:
                             DELETE FROM sessions WHERE user_id = %s;
                             INSERT INTO sessions (user_id, token, expired_at) VALUES (%s, %s, %s);
                         """, (user_id, user_id, token, expired_at))
+                        await conn.commit()
                         response = JSONResponse(content={"status": True, "message": "User logged in successfully"}, status_code=200)
                         response.set_cookie(key="session_token", value=token, httponly=True, samesite="Lax", secure=True, max_age=60 * 60 * 24 * 30) # 30 days
                         return response
         response = JSONResponse(content={"status": False, "message": "Invalid credentials"}, status_code=401)
         response.set_cookie(key="session_token", value="", httponly=True, samesite="Lax", secure=True, max_age=0)
         return response
+    
+    @staticmethod
+    async def Logout(token: str, db_pool: Pool) -> JSONResponse:
+        async with db_pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("""
+                    SELECT user_id FROM sessions WHERE token = %s LIMIT 1
+                """, (token,))
+                result = await cur.fetchone()
+                if not result:
+                    response = JSONResponse(content={"status": False, "message": "Invalid token"}, status_code=404)
+                    response.set_cookie(key="session_token", value="", httponly=True, samesite="Lax", secure=True, max_age=0)
+                    return response
+                user_id = result[0]
+                await cur.execute("""
+                    DELETE FROM sessions WHERE user_id = %s
+                """, (user_id,))
+                await conn.commit()
+                response = JSONResponse(content={"status": True, "message": "User logged out from all sessions"}, status_code=200)
+                response.set_cookie(key="session_token", value="", httponly=True, samesite="Lax", secure=True, max_age=0)
+                return response
