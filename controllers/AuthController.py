@@ -22,9 +22,12 @@ class AuthController:
                 if result:
                     user_id, expired_at = result
                     now_utc = datetime.now(timezone.utc)
-                    if expired_at is not None and now_utc > expired_at:
-                        return JSONResponse(content={"status": False, "message": "Session expired"}, status_code=401)
-                    return JSONResponse(content={"status": True, "user_id": user_id}, status_code=200)
+                    if expired_at is not None:
+                        if expired_at.tzinfo is None:
+                            expired_at = expired_at.replace(tzinfo=timezone.utc)
+                        if now_utc > expired_at:
+                            return JSONResponse(content={"status": False, "message": "Session expired"}, status_code=401)
+                    return JSONResponse(content={"status": True, "message": "1"}, status_code=200)
                 return JSONResponse(content={"status": False, "message": "Session not found"}, status_code=401)
 
     @staticmethod
@@ -56,7 +59,6 @@ class AuthController:
                     SELECT id, password FROM users WHERE username = %s LIMIT 1
                 """, (userData["username"],))
                 result = await cur.fetchone()
-
                 if result:
                     user_id, hashed_password = result
                     if bcrypt.checkpw(password=userData["password"].encode("utf-8"), hashed_password=hashed_password.encode("utf-8")):
@@ -66,10 +68,9 @@ class AuthController:
                             DELETE FROM sessions WHERE user_id = %s;
                             INSERT INTO sessions (user_id, token, expired_at) VALUES (%s, %s, %s);
                         """, (user_id, user_id, token, expired_at))
-                        response = JSONResponse(content={"status": True, "message": "User login successfully"}, status_code=200)
+                        response = JSONResponse(content={"status": True, "message": "User logged in successfully"}, status_code=200)
                         response.set_cookie(key="session_token", value=token, httponly=True, samesite="Lax", secure=True, max_age=60 * 60 * 24 * 30) # 30 days
                         return response
-
         response = JSONResponse(content={"status": False, "message": "Invalid credentials"}, status_code=401)
         response.set_cookie(key="session_token", value="", httponly=True, samesite="Lax", secure=True, max_age=0)
         return response
