@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request
 
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
 
 from aiomysql import Pool
 
@@ -41,3 +41,11 @@ class Router:
         async def logout(request: Request) -> JSONResponse:
             """Logging out a user"""
             return await AuthController().Logout(token=request.cookies.get("session_token"), db_pool=self.db_pool)
+        
+        @self.app.post("/api/generate/chat", response_class=StreamingResponse, include_in_schema=True)
+        async def chat(request: Request, message: any) -> StreamingResponse:
+            pass
+
+        @self.app.post("/api/generate/image", response_class=FileResponse, include_in_schema=True)
+        async def image(request: Request, model: any) -> FileResponse:
+            pass
