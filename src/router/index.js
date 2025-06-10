@@ -8,7 +8,8 @@ const routes = [
         component: HomeView,
         meta: {
             showNavBar: true,
-            showFooter: true
+            showFooter: true,
+            showSideBar: false,
         },
     },
     {
@@ -17,7 +18,8 @@ const routes = [
         component: () => import("@/views/LoginView.vue"),
         meta: {
             showNavBar: false,
-            showFooter: false
+            showFooter: false,
+            showSideBar: false,
         },
     },
     {
@@ -26,7 +28,18 @@ const routes = [
         component: () => import("@/views/RegisterView.vue"),
         meta: {
             showNavBar: false,
-            showFooter: false
+            showFooter: false,
+            showSideBar: false,
+        },
+    },
+    {
+        path: "/dashboard",
+        name: "dashboard",
+        component: () => import("@/views/DashboardView.vue"),
+        meta: {
+            showNavBar: false,
+            showFooter: false,
+            showSideBar: true,
         },
     },
 ];

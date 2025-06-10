@@ -9,7 +9,7 @@ export const useUserDataStore = defineStore("userData", {
     actions: {
         async isLoggedInCheck() {
             try {
-                const response = await axios.get("/api/isLoggedIn", { withCredentials: true });
+                const response = await axios.get("/api/isLoggedIn", { withCredentials: true, timeout: 3000 });
                 if (response.status == 200) {
                     if (response.data.status) {
                         if (response.data.message == "1") {

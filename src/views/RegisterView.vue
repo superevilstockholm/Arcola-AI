@@ -26,7 +26,7 @@
                                 <RouterLink to="/login">Login</RouterLink>
                             </p>
                             <p class="text-danger p-0 m-0 mt-2" style="font-size: 0.9rem">{{ errorMsg }}</p>
-                            <button type="submit" class="btn btn-outline-light w-100 mt-2">Register</button>
+                            <button type="submit" class="btn btn-light w-100 mt-2">Register</button>
                         </form>
                     </div>
                 </div>

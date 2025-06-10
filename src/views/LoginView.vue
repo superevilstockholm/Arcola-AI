@@ -1,5 +1,6 @@
 <template>
-    <section class="vh-100 position-relative overflow-hidden">
+    <LoadingComponent v-if="isLoading" />
+    <section class="vh-100 position-relative overflow-hidden" v-else>
         <div class="position-absolute w-100 h-100 p-0 m-0 z-n1">
             <div class="ratio ratio-1x1 w-100 rounded-circle bg-body" style="transform: translateY(25%); filter: blur(100px)"></div>
         </div>
@@ -22,7 +23,7 @@
                                 <RouterLink to="/register">Register</RouterLink>
                             </p>
                             <p class="text-danger p-0 m-0 mt-2" style="font-size: 0.9rem">{{ errorMsg }}</p>
-                            <button type="submit" class="btn btn-outline-light w-100 mt-2">Login</button>
+                            <button type="submit" class="btn btn-light w-100 mt-2">Login</button>
                         </form>
                     </div>
                 </div>
@@ -45,6 +46,7 @@ input:-webkit-autofill:active {
 <script>
 import axios from "axios";
 import { useUserDataStore } from "@/store/UserDataStore";
+import LoadingComponent from "@/components/LoadingComponent.vue";
 
 export default {
     name: "RegisterView",
@@ -55,11 +57,19 @@ export default {
                 password: "",
             },
             errorMsg: "",
+            isLoading: true,
         };
     },
+    components: {
+        LoadingComponent,
+    },
     async mounted() {
-        if (await useUserDataStore().isLoggedInCheck()) {
-            this.$router.push("/dashboard");
+        try {
+            if (await useUserDataStore().isLoggedInCheck()) {
+                this.$router.push("/dashboard");
+            }
+        } finally {
+            this.isLoading = false;
         }
     },
     methods: {
