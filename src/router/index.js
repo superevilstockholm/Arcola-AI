@@ -13,6 +13,26 @@ const routes = [
         },
     },
     {
+        path: "/features",
+        name: "Features",
+        component: () => import("@/views/FeaturesView.vue"),
+        meta: {
+            showNavBar: true,
+            showFooter: true,
+            showSideBar: false,
+        },
+    },
+    {
+        path: "/pricing",
+        name: "Pricing",
+        component: () => import("@/views/PricingView.vue"),
+        meta: {
+            showNavBar: true,
+            showFooter: true,
+            showSideBar: false,
+        },
+    },
+    {
         path: "/login",
         name: "login",
         component: () => import("@/views/LoginView.vue"),

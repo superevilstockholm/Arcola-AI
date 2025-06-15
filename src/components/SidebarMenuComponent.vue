@@ -13,11 +13,13 @@
             </a>
         </li>
         <li class="nav-item">
-            <button class="btn btn-sm btn-outline-danger w-100 btn-logout fw-semibold" type="button">Logout</button>
+            <button class="btn btn-sm btn-outline-danger w-100 btn-logout fw-semibold" type="button" @click="logout">Logout</button>
         </li>
     </ul>
 </template>
 <script>
+import axios from 'axios';
+
 export default {
     name: "SidebarMenuComponent",
     data() {
@@ -25,5 +27,10 @@ export default {
             // 
         }
     },
+    methods: {
+        async logout() {
+            await axios.delete("/api/logout", { withCredentials: true }).then(() => { this.$router.push("/login") }).catch(() => { this.$router.push("/login") });
+        }
+    }
 }
 </script>

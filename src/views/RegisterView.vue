@@ -28,6 +28,16 @@
                             <p class="text-danger p-0 m-0 mt-2" style="font-size: 0.9rem">{{ errorMsg }}</p>
                             <button type="submit" class="btn btn-light w-100 mt-2">Register</button>
                         </form>
+                        <div class="d-flex align-items-center text-muted my-3">
+                            <hr class="flex-grow-1 me-2">
+                            <span class="small">OR</span>
+                            <hr class="flex-grow-1 ms-2">
+                        </div>
+                        <div class="d-flex align-items-center justify-content-around">
+                            <button class="btn btn-light rounded-circle p-0 m-0" data-bs-toggle="tooltip" data-bs-title="Register with Google" data-bs-placement="bottom"><i class="bi bi-google m-0 p-2 fs-3 text-danger"></i></button>
+                            <button class="btn btn-light rounded-circle p-0 m-0" data-bs-toggle="tooltip" data-bs-title="Register with Facebook" data-bs-placement="bottom"><i class="bi bi-facebook m-0 p-2 fs-3 text-primary"></i></button>
+                            <button class="btn btn-light rounded-circle p-0 m-0" data-bs-toggle="tooltip" data-bs-title="Register with Phone" data-bs-placement="bottom"><i class="bi bi-phone m-0 p-2 fs-3"></i></button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -49,6 +59,7 @@ input:-webkit-autofill:active {
 <script>
 import axios from "axios";
 import { useUserDataStore } from "@/store/UserDataStore";
+import { Tooltip } from "bootstrap/dist/js/bootstrap.bundle.min";
 
 export default {
     name: "RegisterView",
@@ -66,6 +77,12 @@ export default {
         if (await useUserDataStore().isLoggedInCheck()) {
             this.$router.push("/dashboard");
         }
+        this.$nextTick(() => {
+            const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            tooltipTriggerList.forEach((tooltipTriggerEl) => {
+                new Tooltip(tooltipTriggerEl);
+            });
+        });
     },
     methods: {
         async handleRegister() {

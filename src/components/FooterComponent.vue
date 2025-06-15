@@ -25,7 +25,7 @@
                 <h6 class="fw-semibold">Pages</h6>
                 <ul class="list-unstyled text-muted" style="font-size: 0.9rem;">
                     <li v-for="link in navLinks">
-                        <RouterLink class="nav-link footer-nav-link" :to="link[1]">{{ link[0] }}</RouterLink>
+                        <RouterLink class="nav-link footer-nav-link" :class="{ 'active': $route.path == link[1] }" :to="link[1]">{{ link[0] }}</RouterLink>
                     </li>
                 </ul>
             </div>
@@ -44,6 +44,9 @@
     color: var(--bs-body) !important;
     filter: brightness(2);
     transform: translateX(5px) scale(1.1);
+}
+.footer-nav-link.active {
+    color: white;
 }
 </style>
 <script>
@@ -66,6 +69,8 @@ export default {
                 ["Home", "/"],
                 ["Features", "/features"],
                 ["Pricing", "/pricing"],
+                ["Login", "/login"],
+                ["Register", "/register"],
             ],
         };
     },
