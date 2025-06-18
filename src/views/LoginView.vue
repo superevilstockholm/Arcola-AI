@@ -26,9 +26,9 @@
                             <button type="submit" class="btn btn-light w-100 mt-2">Login</button>
                         </form>
                         <div class="d-flex align-items-center text-muted my-3">
-                            <hr class="flex-grow-1 me-2">
+                            <hr class="flex-grow-1 me-2" />
                             <span class="small">OR</span>
-                            <hr class="flex-grow-1 ms-2">
+                            <hr class="flex-grow-1 ms-2" />
                         </div>
                         <div class="d-flex align-items-center justify-content-around">
                             <button class="btn btn-light rounded-circle p-0 m-0" data-bs-toggle="tooltip" data-bs-title="Login with Google" data-bs-placement="bottom"><i class="bi bi-google m-0 p-2 fs-3 text-danger"></i></button>
@@ -58,6 +58,7 @@ import axios from "axios";
 import { useUserDataStore } from "@/store/UserDataStore";
 import LoadingComponent from "@/components/LoadingComponent.vue";
 import { Tooltip } from "bootstrap/dist/js/bootstrap.bundle.min";
+import Swal from "sweetalert2";
 
 export default {
     name: "RegisterView",
@@ -97,6 +98,12 @@ export default {
                     if (response.status == 200) {
                         if (await response.data?.status) {
                             if ((await response.data?.message) == "User logged in successfully") {
+                                Swal.fire({
+                                    title: "Login successful!",
+                                    text: await response.data.message,
+                                    icon: "success",
+                                    timer: 2000,
+                                });
                                 this.$router.push("/dashboard");
                             }
                         }
@@ -104,7 +111,12 @@ export default {
                 })
                 .catch(async (error) => {
                     if (error.response?.status == 401) {
-                        this.errorMsg = await error.response?.data?.message;
+                        Swal.fire({
+                            title: "Login failed!",
+                            text: await error.response?.data?.message,
+                            icon: "error",
+                            timer: 2000,
+                        });
                     }
                 });
         },

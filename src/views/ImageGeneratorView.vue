@@ -1,7 +1,7 @@
 <template>
     <div v-if="show" :class="{ 'd-block': show }" style="display: none;">
         <div class="container">
-            <h4>Settings</h4>
+            <h4>Image Generator</h4>
         </div>
     </div>
 </template>
@@ -9,7 +9,7 @@
 import { useUserDataStore } from '@/store/UserDataStore';
 
 export default {
-    name: "SettingsView",
+    name: "ImageGeneratorView",
     data() {
         return {
             show: false

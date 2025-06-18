@@ -72,6 +72,26 @@ const routes = [
             showSideBar: true,
         },
     },
+    {
+        path: "/chat",
+        name: "chatbot",
+        component: () => import("@/views/ChatBotView.vue"),
+        meta: {
+            showNavBar: false,
+            showFooter: false,
+            showSideBar: true,
+        },
+    },
+    {
+        path: "/imgen",
+        name: "image_generator",
+        component: () => import("@/views/ImageGeneratorView.vue"),
+        meta: {
+            showNavBar: false,
+            showFooter: false,
+            showSideBar: true,
+        },
+    },
 ];
 
 const router = createRouter({

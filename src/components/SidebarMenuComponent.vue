@@ -14,7 +14,10 @@
         </li>
     </ul>
 </template>
-<style>
+<style scoped>
+.nav-link {
+    transition: all 0.2s ease-in-out;
+}
 .nav-link:hover {
     background-color: rgba(var(--bs-body-color-rgb), 0.1);
 }
@@ -28,6 +31,7 @@
 </style>
 <script>
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 export default {
     name: "SidebarMenuComponent",
@@ -35,12 +39,28 @@ export default {
         return {
             sidebarLinks: [
                 ["Dashboard", "/dashboard", "bi-graph-up-arrow"],
+                ["Chat Bot", "/chat", "bi-chat-dots"],
+                ["Image Generator", "/imgen", "bi-image"],
                 ["Settings", "/settings", "bi-gear"]
             ]
         }
     },
     methods: {
         async logout() {
+            const result = await Swal.fire({
+                title: 'Logout',
+                text: "Are you sure you want to logout?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Logout',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true
+            });
+            if (!result.isConfirmed) {
+                return;
+            }
             await axios.delete("/api/logout", { withCredentials: true }).then(() => { this.$router.push("/login") }).catch(() => { this.$router.push("/login") });
         }
     }

@@ -8,9 +8,9 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse w-lg-50" id="navbarNav">
-                <ul class="navbar-nav mx-auto gap-lg-3 text-center" style="font-size: 0.9rem">
+                <ul class="navbar-nav mx-auto gap-lg-2 text-center" style="font-size: 0.9rem">
                     <li class="nav-item" v-for="link in navLinks">
-                        <RouterLink class="nav-link" :class="$route.path == link[1] ? 'active' : ''" :aria-current="$route.path == link[1] ? 'page' : ''" :to="link[1]">{{ link[0] }}</RouterLink>
+                        <RouterLink class="nav-link rounded-pill px-3" :class="$route.path == link[1] ? 'active' : ''" :aria-current="$route.path == link[1] ? 'page' : ''" :to="link[1]">{{ link[0] }}</RouterLink>
                     </li>
                 </ul>
                 <!-- Android -->
@@ -34,6 +34,12 @@
     </nav>
 </template>
 <style scoped>
+.nav-link {
+    transition: all 0.2s ease-in-out;
+}
+.nav-link:hover {
+    background-color: rgba(var(--bs-body-color-rgb), 0.1);
+}
 .btn-login:hover {
     border-color: transparent !important;
 }
