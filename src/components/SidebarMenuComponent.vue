@@ -1,22 +1,31 @@
 <template>
-    <ul class="nav flex-column gap-2" style="font-size: 0.85rem">
-        <li class="nav-item">
-            <a href="#" class="nav-link text-white rounded-2">
-                <i class="bi bi-graph-up-arrow"></i>
-                Dashboard
-            </a>
+    <ul class="nav flex-column gap-2" style="font-size: 0.8rem;">
+        <li class="nav-item" v-for="link in sidebarLinks">
+            <RouterLink :to="link[1]" class="nav-link d-flex align-items-center gap-1 text-white rounded-2" :class="{ 'text-dark nav-link-active': $route.path == link[1] }">
+                <i class="bi" :class="link[2]"></i>
+                {{ link[0] }}
+            </RouterLink>
         </li>
         <li class="nav-item">
-            <a type="button" class="nav-link text-white rounded-2" data-bs-toggle="modal" data-bs-target="#settingsModal">
-                <i class="bi bi-gear"></i>
-                Settings
-            </a>
-        </li>
-        <li class="nav-item">
-            <button class="btn btn-sm btn-outline-danger w-100 btn-logout fw-semibold" type="button" @click="logout">Logout</button>
+            <button class="logout-btn d-flex text-white align-items-center gap-1 nav-link rounded-2 w-100 fw-semibold" type="button" @click="logout">
+                <i class="bi bi-box-arrow-right"></i>
+                Logout
+            </button>
         </li>
     </ul>
 </template>
+<style>
+.nav-link:hover {
+    background-color: rgba(var(--bs-body-color-rgb), 0.1);
+}
+.nav-link-active {
+    background-color: rgba(var(--bs-body-color-rgb), 0.2)!important;
+}
+.logout-btn:hover {
+    color: var(--bs-body-color) !important;
+    background-color: rgba(var(--bs-danger-rgb), 0.5) !important;
+}
+</style>
 <script>
 import axios from 'axios';
 
@@ -24,7 +33,10 @@ export default {
     name: "SidebarMenuComponent",
     data() {
         return {
-            // 
+            sidebarLinks: [
+                ["Dashboard", "/dashboard", "bi-graph-up-arrow"],
+                ["Settings", "/settings", "bi-gear"]
+            ]
         }
     },
     methods: {

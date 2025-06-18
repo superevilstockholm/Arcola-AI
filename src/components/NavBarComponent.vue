@@ -1,5 +1,5 @@
 <template>
-    <nav class="navbar navbar-expand-lg" style="backdrop-filter: blur(10px)">
+    <nav class="navbar navbar-expand-lg" style="backdrop-filter: blur(50px)">
         <div class="container">
             <div class="w-lg-25">
                 <a class="navbar-brand fw-semibold" href="/">Arcola AI</a>
@@ -17,7 +17,7 @@
                 <div class="d-flex d-lg-none w-100">
                     <ProfileBarComponent v-if="isLoggedIn" />
                     <div class="d-flex align-items-center justify-content-center w-100" v-else>
-                        <RouterLink class="btn btn-sm px-3 rounded-2" to="/login">Login</RouterLink>
+                        <RouterLink class="btn btn-sm px-3 rounded-2 btn-login" to="/login">Login</RouterLink>
                         <RouterLink class="btn btn-sm px-3 rounded-2 btn-outline-light" to="/register">Register</RouterLink>
                     </div>
                 </div>
@@ -26,13 +26,18 @@
             <div class="w-lg-25 d-none d-lg-flex align-items-center justify-content-end">
                 <ProfileBarComponent v-if="isLoggedIn" />
                 <div class="d-flex" v-else>
-                    <RouterLink class="btn btn-sm px-3 rounded-2" to="/login">Login</RouterLink>
+                    <RouterLink class="btn btn-sm px-3 rounded-2 btn-login" to="/login">Login</RouterLink>
                     <RouterLink class="btn btn-sm px-3 rounded-2 btn-outline-light" to="/register">Register</RouterLink>
                 </div>
             </div>
         </div>
     </nav>
 </template>
+<style scoped>
+.btn-login:hover {
+    border-color: transparent !important;
+}
+</style>
 <style>
 @media (min-width: 992px) {
     .w-lg-25 {

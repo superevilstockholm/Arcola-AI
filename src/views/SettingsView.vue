@@ -1,7 +1,7 @@
 <template>
     <div v-if="show" :class="{ 'd-block': show }" style="display: none;">
         <div class="container">
-            <h4>Dashboard</h4>
+            <h4>Settings</h4>
         </div>
     </div>
 </template>

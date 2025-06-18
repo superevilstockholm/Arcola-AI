@@ -3,7 +3,7 @@
         <NavBarComponent />
     </header>
     <SidebarComponent v-if="$route?.meta?.showSideBar" />
-    <router-view :class="{ 'ms-lg-250px': $route?.meta?.showSideBar }" />
+    <router-view :class="{ 'ms-lg-200px': $route?.meta?.showSideBar }" />
     <footer class="overflow-hidden" v-if="$route?.meta?.showFooter">
         <hr />
         <FooterComponent class="py-3" />
@@ -11,8 +11,8 @@
 </template>
 <style scoped>
 @media (min-width: 992px) {
-    .ms-lg-250px {
-        margin-left: 250px !important;
+    .ms-lg-200px {
+        margin-left: 200px !important;
     }
 }
 </style>

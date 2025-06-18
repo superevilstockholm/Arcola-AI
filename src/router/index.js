@@ -62,6 +62,16 @@ const routes = [
             showSideBar: true,
         },
     },
+    {
+        path: "/settings",
+        name: "settings",
+        component: () => import("@/views/SettingsView.vue"),
+        meta: {
+            showNavBar: false,
+            showFooter: false,
+            showSideBar: true,
+        },
+    },
 ];
 
 const router = createRouter({
