@@ -15,10 +15,15 @@ from models.ProfileModel import ChangeUsernameModel, ChangeEmailModel
 # Controllers
 from controllers.AuthController import AuthController
 from controllers.ProfileController import ProfileController
+from controllers.DataAdminController import DataAdminController
 
 from datetime import datetime
 
 class CustomMiddlewares:
+    def __init__(self, app: FastAPI, db_pool: Pool):
+        self.app = app
+        self.db_pool = db_pool
+
     def auth_middleware(self, role: list[Literal["user", "admin"]] | Literal["user", "admin"] = "user"):
         def decorator(func):
             @wraps(func)
@@ -55,14 +60,16 @@ class CustomMiddlewares:
                 try:
                     json_data = await request.json()
                 except Exception:
-                    return JSONResponse(content={"status": False, "message": "Invalid JSON body"}, status_code=400)
+                    return JSONResponse(content={"status": False, "message": "Invalid", "detail": {"reason": "Invalid JSON body"}}, status_code=400)
                 if len(key_data) < len(json_data):
                     more_keys: list[str] = [key for key in json_data if key not in key_data]
                     return JSONResponse(
                         content={
                             "status": False,
                             "message": "Too many keys",
-                            "detail": f"{', '.join(more_keys)}"
+                            "detail": {
+                                "keys": more_keys
+                            }
                         },
                         status_code=400
                     )
@@ -85,12 +92,52 @@ class CustomMiddlewares:
         )
         response.delete_cookie(key="session_token")
         return response
+    
+    def __register_resource_routes__(self, controller, path: str, tags: list[str] = ["Uncategorized"], role: list[Literal["user", "admin"]] | Literal["user", "admin"] = "admin", summary: str = ""):
+        """
+        index: /api/resource - GET
+        store: /api/resource - POST
+        show: /api/resource/{item} - GET
+        update: /api/resource/{item} - PUT
+        delete: /api/resource/{item} - DELETE
+
+        Needed methods:
+        - Index
+        - Store
+        - Show
+        - Update
+        - Delete
+        """
+        resource = path.strip() # resource | data-admin | data-users | etc
+
+        @self.app.get(f"/api/{resource}", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=tags, summary=f"Show all {summary} data", description=f"Showing all {summary} data with {role} role type.")
+        @self.auth_middleware(role=role)
+        async def index(request: Request) -> JSONResponse:
+            return await controller.Index(request=request)
+        
+        @self.app.post(f"/api/{resource}", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=tags, summary=f"Create a new {summary} data", description=f"Creating a new {summary} data with {role} role type.")
+        @self.auth_middleware(role=role)
+        async def store(request: Request) -> JSONResponse:
+            return await controller.Store(request=request)
+        
+        @self.app.get(f"/api/{resource}/{{item}}", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=tags, summary=f"Show specific {summary} data", description=f"Showing specific {summary} data with {role} role type.")
+        @self.auth_middleware(role=role)
+        async def show(request: Request, item: str) -> JSONResponse:
+            return await controller.Show(request=request, item=item)
+        
+        @self.app.put(f"/api/{resource}/{{item}}", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=tags, summary=f"Update specific {summary} data", description=f"Updating specific {summary} data with {role} role type.")
+        @self.auth_middleware(role=role)
+        async def update(request: Request, item: str) -> JSONResponse:
+            return await controller.Update(request=request, item=item)
+        
+        @self.app.delete(f"/api/{resource}/{{item}}", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=tags, summary=f"Delete specific {summary} data", description=f"Deleting specific {summary} data with {role} role type.")
+        @self.auth_middleware(role=role)
+        async def delete(request: Request, item: str) -> JSONResponse:
+            return await controller.Delete(request=request, item=item)
 
 class Router(CustomMiddlewares):
     def __init__(self, app: FastAPI, db_pool: Pool):
-        super().__init__()
-        self.app = app
-        self.db_pool = db_pool
+        super().__init__(app=app, db_pool=db_pool)
         self.routes()
 
     def routes(self):
@@ -122,23 +169,26 @@ class Router(CustomMiddlewares):
             """Logging out a user"""
             return await AuthController().Logout(token=request.cookies.get("session_token"), db_pool=self.db_pool)
         
-        @self.app.put("/api/users/change_password", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=["Auth"])
+        @self.app.put("/api/user/change-password", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=["Auth"])
         @self.auth_middleware(role=["user", "admin"])
         @self.data_verify_middleware(["old_password", "new_password"])
         async def reset_password_using_password(request: Request, userData: ResetPasswordByPasswordModel) -> JSONResponse:
             """Reset password using old password"""
             return await AuthController().ResetPasswordUsingPassword(userData=userData, token=request.cookies.get("session_token"), db_pool=self.db_pool)
         
-        @self.app.put("/api/users/change_username", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=["Profile"])
+        @self.app.put("/api/user/change-username", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=["Profile"])
         @self.auth_middleware(role=["user", "admin"])
         @self.data_verify_middleware(["username"])
         async def change_username(request: Request, userData: ChangeUsernameModel) -> JSONResponse:
             """Change username"""
             return await ProfileController().ChangeUsername(userData=userData, token=request.cookies.get("session_token"), db_pool=self.db_pool)
         
-        @self.app.put("/api/users/change_email", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=["Profile"])
+        @self.app.put("/api/user/change-email", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=["Profile"])
         @self.auth_middleware(role=["user", "admin"])
         @self.data_verify_middleware(["email"])
         async def change_email(request: Request, userData: ChangeEmailModel) -> JSONResponse:
             """Change email"""
             return await ProfileController().ChangeEmail(userData=userData, token=request.cookies.get("session_token"), db_pool=self.db_pool)
+        
+        # Admin only
+        self.__register_resource_routes__(path="data-admin", controller=DataAdminController(db_pool=self.db_pool), role="admin", tags=["Admin"], summary="Admin")
