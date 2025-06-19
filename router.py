@@ -10,7 +10,7 @@ from typing import Literal
 # Models
 from models.ResponseModel import BaseResponse
 from models.AuthModel import RegisterModel, LoginModel, ResetPasswordByPasswordModel
-from models.ProfileModel import ChangeUsernameModel
+from models.ProfileModel import ChangeUsernameModel, ChangeEmailModel
 
 # Controllers
 from controllers.AuthController import AuthController
@@ -104,34 +104,41 @@ class Router(CustomMiddlewares):
             except Exception: json_data = None
             return JSONResponse(content={"status": True, "message": "pong", "detail": { "headers": dict(request.headers), "json_data": json_data, "query": str(request.query_params), "method": request.method}}, status_code=200)
         
-        @self.app.post("/api/login", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True)
+        @self.app.post("/api/login", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=["Auth"])
         @self.data_verify_middleware(["username", "password"])
         async def login(request: Request, userData: LoginModel) -> JSONResponse:
             """Logging in a user"""
             return await AuthController().Login(userData, self.db_pool)
         
-        @self.app.post("/api/register", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True)
+        @self.app.post("/api/register", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=["Auth"])
         @self.data_verify_middleware(["username", "password", "email"])
         async def register(request: Request, userData: RegisterModel) -> JSONResponse:
             """Registering a new user"""
             return await AuthController().Register(userData, self.db_pool)
         
-        @self.app.delete("/api/logout", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True)
+        @self.app.delete("/api/logout", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=["Auth"])
         @self.auth_middleware(role=["user", "admin"])
         async def logout(request: Request) -> JSONResponse:
             """Logging out a user"""
             return await AuthController().Logout(token=request.cookies.get("session_token"), db_pool=self.db_pool)
         
-        @self.app.put("/api/users/change_password", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True)
+        @self.app.put("/api/users/change_password", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=["Auth"])
         @self.auth_middleware(role=["user", "admin"])
         @self.data_verify_middleware(["old_password", "new_password"])
         async def reset_password_using_password(request: Request, userData: ResetPasswordByPasswordModel) -> JSONResponse:
             """Reset password using old password"""
             return await AuthController().ResetPasswordUsingPassword(userData=userData, token=request.cookies.get("session_token"), db_pool=self.db_pool)
         
-        @self.app.put("/api/users/change_username", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True)
+        @self.app.put("/api/users/change_username", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=["Profile"])
         @self.auth_middleware(role=["user", "admin"])
         @self.data_verify_middleware(["username"])
         async def change_username(request: Request, userData: ChangeUsernameModel) -> JSONResponse:
             """Change username"""
             return await ProfileController().ChangeUsername(userData=userData, token=request.cookies.get("session_token"), db_pool=self.db_pool)
+        
+        @self.app.put("/api/users/change_email", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=["Profile"])
+        @self.auth_middleware(role=["user", "admin"])
+        @self.data_verify_middleware(["email"])
+        async def change_email(request: Request, userData: ChangeEmailModel) -> JSONResponse:
+            """Change email"""
+            return await ProfileController().ChangeEmail(userData=userData, token=request.cookies.get("session_token"), db_pool=self.db_pool)
