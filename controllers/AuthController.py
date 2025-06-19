@@ -6,7 +6,7 @@ import bcrypt
 import secrets
 import uuid
 
-from models.AuthModel import LoginModel, RegisterModel
+from models.AuthModel import LoginModel, RegisterModel, ResetPasswordByPasswordModel
 
 class AuthController:
     @staticmethod
@@ -74,3 +74,25 @@ class AuthController:
                     return JSONResponse(content={"status": True, "message": "User logged out successfully", "detail": {}}, status_code=200)
             except Exception as e:
                 return JSONResponse(content={"status": False, "message": "Error logging out user", "detail": {"reason": str(e)}}, status_code=500)
+            
+    @staticmethod
+    async def ResetPasswordUsingPassword(userData: ResetPasswordByPasswordModel, token: str, db_pool: Pool) -> JSONResponse:
+        async with db_pool.acquire() as conn:
+            try:
+                async with conn.cursor() as cur:
+                    await cur.execute("SELECT user_id FROM sessions WHERE token = %s LIMIT 1", (token,))
+                    user_row = await cur.fetchone()
+                    if not user_row:
+                        return JSONResponse(content={"status": False, "message": "Password reset failed", "detail": {"reason": "Session not found"}}, status_code=401)
+                    user_id = user_row[0]
+                    await cur.execute("SELECT username, password FROM users WHERE id = %s", (user_id,))
+                    stored_password = await cur.fetchone()
+                    if not stored_password:
+                        return JSONResponse(content={"status": False, "message": "Password reset failed", "detail": {"reason": "User not found"}}, status_code=404)
+                    if not bcrypt.checkpw(userData.old_password.encode("utf-8"), stored_password[1].encode("utf-8")):
+                        return JSONResponse(content={"status": False, "message": "Password reset failed", "detail": {"reason": "Invalid password"}}, status_code=401)
+                    await cur.execute("UPDATE users SET password = %s WHERE id = %s", (bcrypt.hashpw(userData.new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8"), user_id))
+                    await conn.commit()
+                    return JSONResponse(content={"status": True, "message": "Password reset successfully", "detail": {"username": stored_password[0]}}, status_code=200)
+            except Exception as e:
+                return JSONResponse(content={"status": False, "message": "Error resetting password", "detail": {"reason": str(e)}}, status_code=500)

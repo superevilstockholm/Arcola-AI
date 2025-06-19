@@ -9,7 +9,7 @@ from typing import Literal
 
 # Models
 from models.ResponseModel import BaseResponse
-from models.AuthModel import RegisterModel, LoginModel
+from models.AuthModel import RegisterModel, LoginModel, ResetPasswordByPasswordModel
 
 # Controllers
 from controllers.AuthController import AuthController
@@ -31,14 +31,11 @@ class CustomMiddlewares:
                         result = await cur.fetchone()
                 if not result:
                     return JSONResponse(content={"status": False, "message": "Unauthorized", "detail": {"reason": "User not found"}}, status_code=401)
-                
                 user_role = result[0]
-                
                 role_list = role if isinstance(role, list) else [role]
                 if user_role not in role_list:
                     return JSONResponse(content={"status": False, "message": "Forbidden", "detail": {"reason": "Forbidden"}}, status_code=403)
-                
-                return await func(request)
+                return await func(request, *args, **kwargs)
             return wrapper
         return decorator
     
@@ -71,7 +68,6 @@ class Router(CustomMiddlewares):
         self.db_pool = db_pool
         self.routes()
 
-
     def routes(self):
         @self.app.route("/api/ping", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"], include_in_schema=False)
         @self.auth_middleware(role=["user", "admin"])
@@ -100,3 +96,9 @@ class Router(CustomMiddlewares):
         async def logout(request: Request) -> JSONResponse:
             """Logging out a user"""
             return await AuthController().Logout(token=request.cookies.get("session_token"), db_pool=self.db_pool)
+        
+        @self.app.put("/api/users/password/change", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True)
+        @self.auth_middleware(role=["user", "admin"])
+        async def reset_password_using_password(request: Request, userData: ResetPasswordByPasswordModel) -> JSONResponse:
+            """Reset password using old password"""
+            return await AuthController().ResetPasswordUsingPassword(userData=userData, token=request.cookies.get("session_token"), db_pool=self.db_pool)

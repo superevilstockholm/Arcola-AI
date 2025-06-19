@@ -8,3 +8,7 @@ class RegisterModel(BaseModel):
 class LoginModel(BaseModel):
     username: str = Field(..., min_length=5, max_length=20)
     password: str = Field(..., min_length=8, max_length=64)
+
+class ResetPasswordByPasswordModel(BaseModel):
+    old_password: str = Field(..., min_length=8, max_length=64)
+    new_password: str = Field(..., min_length=8, max_length=64)

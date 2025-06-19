@@ -20,7 +20,10 @@ class ArcolaAI:
     def __init__(self):
         # Initialization
         load_dotenv()
-        self.app = FastAPI()
+        self.app = FastAPI(
+            title="ArcolaAI",
+            version="1.0.0"
+        )
         self.db_pool: Optional[Pool] = None
         # Mount
         self.app.mount("/static", StaticFiles(directory="static"), name="static")
