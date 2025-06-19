@@ -10,9 +10,11 @@ from typing import Literal
 # Models
 from models.ResponseModel import BaseResponse
 from models.AuthModel import RegisterModel, LoginModel, ResetPasswordByPasswordModel
+from models.ProfileModel import ChangeUsernameModel
 
 # Controllers
 from controllers.AuthController import AuthController
+from controllers.ProfileController import ProfileController
 
 from datetime import datetime
 
@@ -120,8 +122,16 @@ class Router(CustomMiddlewares):
             """Logging out a user"""
             return await AuthController().Logout(token=request.cookies.get("session_token"), db_pool=self.db_pool)
         
-        @self.app.put("/api/users/password/change", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True)
+        @self.app.put("/api/users/change_password", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True)
         @self.auth_middleware(role=["user", "admin"])
+        @self.data_verify_middleware(["old_password", "new_password"])
         async def reset_password_using_password(request: Request, userData: ResetPasswordByPasswordModel) -> JSONResponse:
             """Reset password using old password"""
             return await AuthController().ResetPasswordUsingPassword(userData=userData, token=request.cookies.get("session_token"), db_pool=self.db_pool)
+        
+        @self.app.put("/api/users/change_username", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True)
+        @self.auth_middleware(role=["user", "admin"])
+        @self.data_verify_middleware(["username"])
+        async def change_username(request: Request, userData: ChangeUsernameModel) -> JSONResponse:
+            """Change username"""
+            return await ProfileController().ChangeUsername(userData=userData, token=request.cookies.get("session_token"), db_pool=self.db_pool)
