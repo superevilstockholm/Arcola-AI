@@ -22,7 +22,7 @@ class ArcolaAI:
         load_dotenv()
         self.app = FastAPI(
             title="ArcolaAI",
-            version="1.0.0"
+            version="0.0.1"
         )
         self.db_pool: Optional[Pool] = None
         # Mount

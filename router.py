@@ -14,27 +14,34 @@ from models.AuthModel import RegisterModel, LoginModel, ResetPasswordByPasswordM
 # Controllers
 from controllers.AuthController import AuthController
 
+from datetime import datetime
+
 class CustomMiddlewares:
     def auth_middleware(self, role: list[Literal["user", "admin"]] | Literal["user", "admin"] = "user"):
         def decorator(func):
             @wraps(func)
             async def wrapper(request: Request, *args, **kwargs):
-                cookie = request.cookies.get("session_token")
-                if not cookie:
-                    return JSONResponse(content={"status": False, "message": "Unauthorized", "detail": {"reason": "Cookie not found"}}, status_code=401)
+                token_cookie = request.cookies.get("session_token")
+                if not token_cookie:
+                    return self._unauthorized("Cookie not found")
                 async with self.db_pool.acquire() as conn:
                     async with conn.cursor() as cur:
-                        await cur.execute("""
-                            SELECT user_type FROM users 
-                            WHERE id = (SELECT user_id FROM sessions WHERE token = %s LIMIT 1)
-                        """, (cookie,))
-                        result = await cur.fetchone()
-                if not result:
-                    return JSONResponse(content={"status": False, "message": "Unauthorized", "detail": {"reason": "User not found"}}, status_code=401)
-                user_role = result[0]
-                role_list = role if isinstance(role, list) else [role]
-                if user_role not in role_list:
-                    return JSONResponse(content={"status": False, "message": "Forbidden", "detail": {"reason": "Forbidden"}}, status_code=403)
+                        await cur.execute("SELECT user_id, expired_at FROM sessions WHERE token = %s LIMIT 1", (token_cookie,))
+                        session = await cur.fetchone()
+                        if not session:
+                            return self._unauthorized("Session not found")
+                        user_id, expired_at = session
+                        if expired_at and datetime.now() > expired_at:
+                            await cur.execute("DELETE FROM sessions WHERE token = %s", (token_cookie,))
+                            return self._unauthorized("Session expired")
+                        await cur.execute("SELECT user_type FROM users WHERE id = %s LIMIT 1", (user_id,))
+                        user = await cur.fetchone()
+                        if not user:
+                            return self._unauthorized("User not found")
+                        user_role = user[0]
+                        allowed_roles = role if isinstance(role, list) else [role]
+                        if user_role not in allowed_roles:
+                            return self._forbidden("Forbidden access")
                 return await func(request, *args, **kwargs)
             return wrapper
         return decorator
@@ -60,6 +67,22 @@ class CustomMiddlewares:
                 return await func(request, *args, **kwargs)
             return wrapper
         return decorator
+    
+    def _unauthorized(self, reason: str):
+        response = JSONResponse(
+            content={"status": False, "message": "Unauthorized", "detail": {"reason": reason}},
+            status_code=401
+        )
+        response.delete_cookie(key="session_token")
+        return response
+
+    def _forbidden(self, reason: str):
+        response = JSONResponse(
+            content={"status": False, "message": "Forbidden", "detail": {"reason": reason}},
+            status_code=403
+        )
+        response.delete_cookie(key="session_token")
+        return response
 
 class Router(CustomMiddlewares):
     def __init__(self, app: FastAPI, db_pool: Pool):
