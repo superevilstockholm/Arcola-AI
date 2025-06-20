@@ -14,11 +14,11 @@ class DataUsersController():
         async with self.db_pool.acquire() as conn:
             try:
                 async with conn.cursor() as cur:
-                    await cur.execute("SELECT id, username, email, verified_email, DATE_FORMAT(created_at, '%Y-%m-%dT%H:%i:%s') AS created_at FROM users")
+                    await cur.execute("SELECT id, username, email, verified_email, DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS created_at FROM users")
                     rows = await cur.fetchall()
                     return JSONResponse(content={"status": True, "message": "Success fetching data users", "detail": {"head": ["id", "username", "email", "verified_email", "created_at"], "body": list(rows)}}, status_code=200)
             except Exception as e:
-                return JSONResponse(content={"status": False, "message": "Error logging out user", "detail": {"reason": str(e)}}, status_code=500)
+                return JSONResponse(content={"status": False, "message": "Error", "detail": {"reason": str(e)}}, status_code=500)
     
     async def Store(self, request: Request, data: CreateDataUsersModel) -> JSONResponse:
         async with self.db_pool.acquire() as conn:
@@ -38,13 +38,57 @@ class DataUsersController():
                     await conn.commit()
                     return JSONResponse(content={"status": True, "message": "Success storing data users", "detail": {"test": "Berhasil"}}, status_code=200)
             except Exception as e:
-                return JSONResponse(content={"status": False, "message": "Error logging out user", "detail": {"reason": str(e)}}, status_code=500)
+                return JSONResponse(content={"status": False, "message": "Error", "detail": {"reason": str(e)}}, status_code=500)
     
     async def Show(self, request: Request, item: str) -> JSONResponse:
-        return JSONResponse(content={"status": True, "message": "pong", "detail": {"test": "Berhasil"}}, status_code=200)
+        async with self.db_pool.acquire() as conn:
+            try:
+                async with conn.cursor() as cur:
+                    await cur.execute("SELECT id, username, email, password, user_type, verified_email, DATE_FORMAT(created_at, '%%Y-%%m-%%d %%H:%%i:%%s') AS created_at FROM users WHERE id = %s", (item,))
+                    row = await cur.fetchone()
+                    if not row:
+                        return JSONResponse(content={"status": False, "message": "Data users not found", "detail": {"reason": "Data users not found"}}, status_code=404)
+                    return JSONResponse(content={"status": True, "message": "Success fetching data users", "detail": {"head": ["id", "username", "email", "password", "user_type", "verified_email", "created_at"], "body": list(row)}}, status_code=200)
+            except Exception as e:
+                return JSONResponse(content={"status": False, "message": "Error", "detail": {"reason": str(e)}}, status_code=500)
 
     async def Update(self, request: Request, item: str, data: EditDataUsersModel) -> JSONResponse:
-        return JSONResponse(content={"status": True, "message": "pong", "detail": {"test": "Berhasil"}}, status_code=200)
+        async with self.db_pool.acquire() as conn:
+            try:
+                async with conn.cursor() as cur:
+                    await cur.execute("""
+                        SELECT username, email FROM users WHERE (username = %s OR email = %s) AND id != %s LIMIT 1
+                    """, (data.username, data.email, item))
+                    result = await cur.fetchone()
+                    if result:
+                        existing_username, existing_email = result
+                        if existing_username == data.username:
+                            return JSONResponse(content={"status": False, "message": "Username already exists", "detail": {"reason": "Username already exists"}}, status_code=409)
+                        if existing_email == data.email:
+                            return JSONResponse(content={"status": False, "message": "Email already exists", "detail": {"reason": "Email already exists"}}, status_code=409)
+                    if data.password:
+                        new_password = bcrypt.hashpw(data.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+                        await cur.execute("""
+                            UPDATE users SET username = %s, email = %s, password = %s, user_type = %s, verified_email = %s WHERE id = %s
+                        """, (data.username, data.email, new_password, data.user_type, data.verified_email, item))
+                    else:
+                        await cur.execute("""
+                            UPDATE users SET username = %s, email = %s, user_type = %s, verified_email = %s WHERE id = %s
+                        """, (data.username, data.email, data.user_type, data.verified_email, item))
+                    await conn.commit()
+                    return JSONResponse(content={"status": True, "message": "Success updating data users", "detail": {"test": "Berhasil"}}, status_code=200)
+            except Exception as e:
+                return JSONResponse(content={"status": False, "message": "Error", "detail": {"reason": str(e)}}, status_code=500)
     
     async def Delete(self, request: Request, item: str) -> JSONResponse:
-        return JSONResponse(content={"status": True, "message": "pong", "detail": {"test": "Berhasil"}}, status_code=200)
+        async with self.db_pool.acquire() as conn:
+            try:
+                async with conn.cursor() as cur:
+                    await cur.execute("DELETE FROM users WHERE id = %s", (item,))
+                    await conn.commit()
+                    if cur.rowcount == 0:
+                        return JSONResponse(content={"status": False, "message": "Data users not found", "detail": {"reason": "Data users not found"}}, status_code=404)
+                    else:
+                        return JSONResponse(content={"status": True, "message": "Success deleting data users", "detail": {"test": "Berhasil"}}, status_code=200)
+            except Exception as e:
+                return JSONResponse(content={"status": False, "message": "Error", "detail": {"reason": str(e)}}, status_code=500)

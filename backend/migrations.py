@@ -13,6 +13,7 @@ async def create_table_users(conn):
             email VARCHAR(100) UNIQUE NOT NULL,
             password VARCHAR(255) NOT NULL,
             verified_email BOOLEAN DEFAULT FALSE,
+            user_type ENUM('user', 'admin') DEFAULT 'user',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         """)

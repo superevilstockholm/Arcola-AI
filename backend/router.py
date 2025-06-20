@@ -18,7 +18,6 @@ from models.DataUsersModel import CreateDataUsersModel, EditDataUsersModel
 # Controllers
 from controllers.AuthController import AuthController
 from controllers.ProfileController import ProfileController
-from controllers.DataAdminsController import DataAdminsController
 from controllers.DataUsersController import DataUsersController
 
 from datetime import datetime
@@ -82,6 +81,16 @@ class CustomMiddlewares:
         return decorator
     
     def _unauthorized(self, reason: str):
+        """
+        Helper function to return a 401 Unauthorized response with the given reason.
+
+        Args:
+            reason (str): The reason for the unauthorized response.
+
+        Returns:
+            JSONResponse: A JSON response with a 401 status code, a message of "Unauthorized",
+            and a detail containing the given reason.
+        """
         response = JSONResponse(
             content={"status": False, "message": "Unauthorized", "detail": {"reason": reason}},
             status_code=401
@@ -90,6 +99,16 @@ class CustomMiddlewares:
         return response
 
     def _forbidden(self, reason: str):
+        """
+        Helper function to return a 403 Forbidden response with the given reason.
+
+        Args:
+            reason (str): The reason for the forbidden response.
+
+        Returns:
+            JSONResponse: A JSON response with a 403 status code, a message of "Forbidden",
+            and a detail containing the given reason.
+        """
         response = JSONResponse(
             content={"status": False, "message": "Forbidden", "detail": {"reason": reason}},
             status_code=403
@@ -98,6 +117,17 @@ class CustomMiddlewares:
         return response
     
     async def parse_request_data(self, request: Request, model):
+        """
+        Parse JSON data from a request into a Pydantic model, returning an instance of the model if successful or a JSONResponse with an error message if not.
+
+        Args:
+            request: The request object
+            model: The Pydantic model to parse the JSON data into
+
+        Returns:
+            A tuple containing the parsed data or None, and a JSONResponse with an error message or None
+        """
+
         content_type = request.headers.get("content-type", "")
         if "application/json" not in content_type:
             return None, JSONResponse(
@@ -169,6 +199,17 @@ class CustomMiddlewares:
         model_update = models.get("update", None)
 
         def generate_openapi_schema(model):
+            """
+            Generates an OpenAPI schema for a given Pydantic model.
+
+            Args:
+                model: A Pydantic model class instance.
+
+            Returns:
+                dict: A dictionary representing the OpenAPI schema for the model,
+                    formatted to include the model's JSON schema under the 
+                    "application/json" content type.
+            """
             return {
                 "requestBody": {
                     "content": {
@@ -182,11 +223,33 @@ class CustomMiddlewares:
         @self.app.get(f"/api/{resource}", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=tags, summary=f"Show all {summary} data", description=f"Showing all {summary} data with {role} role type.")
         @self.auth_middleware(role=role)
         async def index(request: Request) -> JSONResponse:
+            """
+            Show all {summary} data.
+
+            This endpoint is used to retrieve all {summary} data with {role} role type.
+
+            Args:
+                request (Request): The incoming request.
+
+            Returns:
+                JSONResponse: The response with the data.
+            """
             return await controller.Index(request=request)
         
         @self.app.post(f"/api/{resource}", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=tags, summary=f"Create a new {summary} data", description=f"Creating a new {summary} data with {role} role type.", openapi_extra=generate_openapi_schema(model_store) if model_store else {})
         @self.auth_middleware(role=role)
         async def store(request: Request) -> JSONResponse:
+            """
+            Create a new {summary} data.
+
+            This endpoint is used to create a new {summary} data with {role} role type.
+
+            Args:
+                request (Request): The incoming request containing the data to be stored.
+
+            Returns:
+                JSONResponse: The response indicating the success or failure of the operation.
+            """
             if model_store:
                 data, error_response = await self.parse_request_data(request, model_store)
                 if error_response:
@@ -197,11 +260,35 @@ class CustomMiddlewares:
         @self.app.get(f"/api/{resource}/{{item}}", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=tags, summary=f"Show specific {summary} data", description=f"Showing specific {summary} data with {role} role type.")
         @self.auth_middleware(role=role)
         async def show(request: Request, item: str) -> JSONResponse:
+            """
+            Show specific {summary} data.
+
+            This endpoint is used to retrieve specific {summary} data with {role} role type.
+
+            Args:
+                request (Request): The incoming request.
+                item (str): The item ID.
+
+            Returns:
+                JSONResponse: The response with the data.
+            """
             return await controller.Show(request=request, item=item)
         
         @self.app.put(f"/api/{resource}/{{item}}", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=tags, summary=f"Update specific {summary} data", description=f"Updating specific {summary} data with {role} role type.", openapi_extra=generate_openapi_schema(model_update) if model_update else {})
         @self.auth_middleware(role=role)
         async def update(request: Request, item: str) -> JSONResponse:
+            """
+            Update specific {summary} data.
+
+            This endpoint is used to update specific {summary} data with {role} role type.
+
+            Args:
+                request (Request): The incoming request.
+                item (str): The item ID.
+
+            Returns:
+                JSONResponse: The response indicating the success or failure of the operation.
+            """
             if model_update:
                 data, error_response = await self.parse_request_data(request, model_update)
                 if error_response:
@@ -212,6 +299,18 @@ class CustomMiddlewares:
         @self.app.delete(f"/api/{resource}/{{item}}", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=tags, summary=f"Delete specific {summary} data", description=f"Deleting specific {summary} data with {role} role type.")
         @self.auth_middleware(role=role)
         async def delete(request: Request, item: str) -> JSONResponse:
+            """
+            Delete specific {summary} data.
+
+            This endpoint is used to delete specific {summary} data with {role} role type.
+
+            Args:
+                request (Request): The incoming request.
+                item (str): The item ID.
+
+            Returns:
+                JSONResponse: The response indicating the success or failure of the operation.
+            """
             return await controller.Delete(request=request, item=item)
 
 class Router(CustomMiddlewares):
@@ -277,11 +376,4 @@ class Router(CustomMiddlewares):
             tags=["Admin"],
             summary="User",
             models={"store": CreateDataUsersModel, "update": EditDataUsersModel}
-        )
-        self.__register_resource_routes__(
-            path="data-admin",
-            controller=DataAdminsController(db_pool=self.db_pool),
-            role="admin",
-            tags=["Admin"],
-            summary="Admin"
         )
