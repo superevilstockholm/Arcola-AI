@@ -5,17 +5,21 @@ from fastapi.responses import JSONResponse
 from aiomysql import Pool
 
 from functools import wraps
-from typing import Literal
+from typing import Literal, Optional
+
+from pydantic import ValidationError
 
 # Models
 from models.ResponseModel import BaseResponse
 from models.AuthModel import RegisterModel, LoginModel, ResetPasswordByPasswordModel
 from models.ProfileModel import ChangeUsernameModel, ChangeEmailModel
+from models.DataUsersModel import CreateDataUsersModel, EditDataUsersModel
 
 # Controllers
 from controllers.AuthController import AuthController
 from controllers.ProfileController import ProfileController
-from controllers.DataAdminController import DataAdminController
+from controllers.DataAdminsController import DataAdminsController
+from controllers.DataUsersController import DataUsersController
 
 from datetime import datetime
 
@@ -93,7 +97,38 @@ class CustomMiddlewares:
         response.delete_cookie(key="session_token")
         return response
     
-    def __register_resource_routes__(self, controller, path: str, tags: list[str] = ["Uncategorized"], role: list[Literal["user", "admin"]] | Literal["user", "admin"] = "admin", summary: str = ""):
+    async def parse_request_data(self, request: Request, model):
+        content_type = request.headers.get("content-type", "")
+        if "application/json" not in content_type:
+            return None, JSONResponse(
+                content={"status": False, "message": "Unsupported Media Type", "detail": {"reason": "Expected 'application/json' content type"}},
+                status_code=415
+            )
+        try:
+            json_data = await request.json()
+        except Exception:
+            return None, JSONResponse(
+                content={"status": False, "message": "Malformed JSON body", "detail": {"reason": "Body is not a valid JSON structure"}},
+                status_code=400
+            )
+        if not isinstance(json_data, dict) or not json_data:
+            return None, JSONResponse(
+                content={"status": False, "message": "Empty or invalid JSON", "detail": {"reason": "Expected JSON object with fields"}},
+                status_code=400
+            )
+        try:
+            data = model(**json_data)
+            return data, None
+        except Exception as e:
+            if isinstance(e, ValidationError):
+                return None, JSONResponse(
+                    content={"status": False, "message": "Validation Error", "detail": e.errors()},
+                    status_code=422
+                )
+            raise e
+
+    
+    def __register_resource_routes__(self, controller, path: str, tags: list[str] = ["Uncategorized"], role: list[Literal["user", "admin"]] | Literal["user", "admin"] = "admin", summary: str = "", models: dict[str, str] = {}):
         """
         index: /api/resource - GET
         store: /api/resource - POST
@@ -101,23 +136,62 @@ class CustomMiddlewares:
         update: /api/resource/{item} - PUT
         delete: /api/resource/{item} - DELETE
 
-        Needed methods:
+        Needed class methods:
         - Index
         - Store
         - Show
         - Update
         - Delete
+
+        Verify data format:
+        {
+            "method_name": [
+                "key1", "key2", "key3"
+            ],
+            "store": [
+                "key1", "key2", "key3"
+            ],
+            "edit": [
+                "key1", "key2", "key3"
+            ],
+        }
+
+        Models format:
+        {
+            "method_name": "",
+            "model_name": "",
+        }
         """
         resource = path.strip() # resource | data-admin | data-users | etc
+
+        # Models
+        model_store = models.get("store", None)
+        model_update = models.get("update", None)
+
+        def generate_openapi_schema(model):
+            return {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": model.schema()
+                        }
+                    }
+                }
+            }
 
         @self.app.get(f"/api/{resource}", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=tags, summary=f"Show all {summary} data", description=f"Showing all {summary} data with {role} role type.")
         @self.auth_middleware(role=role)
         async def index(request: Request) -> JSONResponse:
             return await controller.Index(request=request)
         
-        @self.app.post(f"/api/{resource}", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=tags, summary=f"Create a new {summary} data", description=f"Creating a new {summary} data with {role} role type.")
+        @self.app.post(f"/api/{resource}", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=tags, summary=f"Create a new {summary} data", description=f"Creating a new {summary} data with {role} role type.", openapi_extra=generate_openapi_schema(model_store) if model_store else {})
         @self.auth_middleware(role=role)
         async def store(request: Request) -> JSONResponse:
+            if model_store:
+                data, error_response = await self.parse_request_data(request, model_store)
+                if error_response:
+                    return error_response
+                return await controller.Store(request=request, data=data)
             return await controller.Store(request=request)
         
         @self.app.get(f"/api/{resource}/{{item}}", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=tags, summary=f"Show specific {summary} data", description=f"Showing specific {summary} data with {role} role type.")
@@ -125,9 +199,14 @@ class CustomMiddlewares:
         async def show(request: Request, item: str) -> JSONResponse:
             return await controller.Show(request=request, item=item)
         
-        @self.app.put(f"/api/{resource}/{{item}}", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=tags, summary=f"Update specific {summary} data", description=f"Updating specific {summary} data with {role} role type.")
+        @self.app.put(f"/api/{resource}/{{item}}", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=tags, summary=f"Update specific {summary} data", description=f"Updating specific {summary} data with {role} role type.", openapi_extra=generate_openapi_schema(model_update) if model_update else {})
         @self.auth_middleware(role=role)
         async def update(request: Request, item: str) -> JSONResponse:
+            if model_update:
+                data, error_response = await self.parse_request_data(request, model_update)
+                if error_response:
+                    return error_response
+                return await controller.Update(request=request, item=item, data=data)
             return await controller.Update(request=request, item=item)
         
         @self.app.delete(f"/api/{resource}/{{item}}", response_class=JSONResponse, response_model=BaseResponse, include_in_schema=True, tags=tags, summary=f"Delete specific {summary} data", description=f"Deleting specific {summary} data with {role} role type.")
@@ -191,4 +270,18 @@ class Router(CustomMiddlewares):
             return await ProfileController().ChangeEmail(userData=userData, token=request.cookies.get("session_token"), db_pool=self.db_pool)
         
         # Admin only
-        self.__register_resource_routes__(path="data-admin", controller=DataAdminController(db_pool=self.db_pool), role="admin", tags=["Admin"], summary="Admin")
+        self.__register_resource_routes__(
+            path="data-users",
+            controller=DataUsersController(db_pool=self.db_pool),
+            role="admin",
+            tags=["Admin"],
+            summary="User",
+            models={"store": CreateDataUsersModel, "update": EditDataUsersModel}
+        )
+        self.__register_resource_routes__(
+            path="data-admin",
+            controller=DataAdminsController(db_pool=self.db_pool),
+            role="admin",
+            tags=["Admin"],
+            summary="Admin"
+        )

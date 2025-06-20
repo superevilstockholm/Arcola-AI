@@ -2,7 +2,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from aiomysql import Pool
 
-class DataAdminController:
+class DataAdminsController:
     def __init__(self, db_pool: Pool):
         self.db_pool = db_pool
 
